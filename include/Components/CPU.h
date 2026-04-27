@@ -82,9 +82,16 @@ struct CPUContext {
 	u8 m_cycles = 0;
 	u8 opcode = 0x00;
 	bool prefixed_opcode = false;
+	bool prefix_check = false;
+
+	bool jp_condition = false;
 	
 	u8 first_fetch = 0x00;
 	u8 second_fetch = 0x00;
+
+	bool ime = false;
+	bool enable_ime = false;
+	bool disable_ime = false;
 };
 
 class CPU {
@@ -150,4 +157,25 @@ private:
 	void or_r(u8 value);
 
 	void daa();
+
+	void jp_cc(bool condition, u8 response_value);
+	void call_cc(bool conditon, u8 response_value);
+	void ret_cc(bool condition, u8 response_value);
+	void rst(u16 vector);
+
+	void rlca();
+	void rrca();
+	void rla();
+	void rra();
+	void rlc_r(u8& reg);
+	void rrc_r(u8& reg);
+	void rl_r(u8& reg);
+	void rr_r(u8& reg);
+	void sla_r(u8& reg);
+	void sra_r(u8& reg);
+	void swap_r(u8& reg);
+	void srl_r(u8& reg);
+	bool bit(u8 b, u8 value);
+	void res(u8 b, u8& reg);
+	void set(u8 b, u8& reg);
 };

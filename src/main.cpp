@@ -12,9 +12,17 @@ int main() {
 		return -1;
 	}
 
-	for (int i = 0; i <= 255; i++) {
+	//core.sst(0x40, true);
+	
+	
+	for (int i = 0x00; i <= 0xff; i++) {
 		core.sst(i, false);
 	}
+
+	for (int i = 0x00; i <= 0xff; i++) {
+		core.sst(i, true);
+	}
+		
 
 	return 0;
 }

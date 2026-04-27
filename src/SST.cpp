@@ -34,7 +34,8 @@ void SST::test(u8 opcode, bool prefix, SSTResult& results) {
 	j test_json;
 
 	std::string op = opcodes[opcode];
-	std::filesystem::path path = "C:\\Users\\ciaran\\Documents\\Development\\SSTs\\sm83\\v1\\" + op + ".json";
+	std::string pre = prefix ? "cb " : "";
+	std::filesystem::path path = "C:\\Users\\ciaran\\Documents\\Development\\SSTs\\sm83\\v1\\" + pre + op + ".json";
 
 	if (load_json_file(path, test_json) < 0) {
 		results.success = false;
@@ -96,7 +97,7 @@ void SST::test(u8 opcode, bool prefix, SSTResult& results) {
 
 		int length = instruction_lengths[opcode];
 		if (prefix) {
-			length = instruction_lengths[opcode];
+			length = instruction_lengths_prefixed[opcode];
 		}
 
 		//ADD CYCLES FOR FETCH PHASE + MULTIPLY FOR T CYCLES
