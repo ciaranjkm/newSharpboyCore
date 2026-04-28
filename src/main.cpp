@@ -15,9 +15,9 @@ int main() {
 	//core.sst(0x40, true);
 	
 	
-	for (int i = 0x00; i <= 0xff; i++) {
-		core.sst(i, false);
-	}
+	//for (int i = 0x00; i <= 0xff; i++) {
+	//	core.sst(i, false);
+	//}
 
 	for (int i = 0x00; i <= 0xff; i++) {
 		core.sst(i, true);

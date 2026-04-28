@@ -1,33 +1,31 @@
 #include <Components/CPU.h>
 
-//SST
+/*   Single Step Test Functionality   */
 void CPU::start_sst_mode() {
 	ctx.sst_mode = true;
 }
-
 void CPU::stop_sst_mode() {
 	ctx.sst_mode = false;
 }
-
 void CPU::reset_for_next_sst() {
 	ctx = {};
 	ctx.sst_mode = true;
 	//cycles.clear();
 }
 
-//REGISTERS
-void CPU::reset_registers(bool boot_rom) {
+/*   Get/Reset/Load Register Data   */
+void CPU::reset(bool boot_rom) {
 	registers.reset(boot_rom);
+	ctx = {};
 }
-
-void CPU::load_registers(const CPURegisters& registers) {
+void CPU::load_registers(CPURegisters registers = {}) {
 	this->registers = registers;
 }
-
 CPURegisters CPU::get_registers() {
 	return registers;
 }
 
+/*   Get and Set 16 Bit Registers   */
 u16 CPU::get_joined_register(CPUJoinedRegisters registers) {
 	switch (registers) {
 	case rAF:
@@ -46,7 +44,6 @@ u16 CPU::get_joined_register(CPUJoinedRegisters registers) {
 		return 0x0000;
 	}
 }
-
 void CPU::set_joined_register(CPUJoinedRegisters registers, u16 value) {
 	switch (registers) {
 	case rAF:
@@ -76,11 +73,10 @@ void CPU::set_joined_register(CPUJoinedRegisters registers, u16 value) {
 	}
 }
 
-//FLAGS
+/*   Get and Set Flags Register   */
 bool CPU::get_flag(CPUFlags flag) {
 	return ((registers.f >> flag) & 0x01) != 0;
 }
-
 void CPU::set_flag(CPUFlags flag, bool state) {
 	if (state) {
 		registers.f |= (1 << flag);
@@ -90,9 +86,7 @@ void CPU::set_flag(CPUFlags flag, bool state) {
 	}
 }
 
-//EXECUTION
-
-/*   Send a bus request, is the cpu reading, writing or idle?   */
+/*   Get Next Bus Request and Action Next Bus Response   */
 BusRequest CPU::get_bus_request() {
 	BusRequest request;
 
@@ -110,8 +104,6 @@ BusRequest CPU::get_bus_request() {
 		return request;
 	}
 }
-
-/*   Action the bus response, are we fetching opcode, executing, halted?   */
 void CPU::action_bus_response(BusResponse response) {
 	switch (ctx.state) {
 	case sFetch:
@@ -124,20 +116,14 @@ void CPU::action_bus_response(BusResponse response) {
 	}
 }
 
-/*   Opcode definitions for bus requests   */
+/*   Opcode Bus Request and Response   */
 void CPU::opcode_bus_request(BusRequest& request) {
 	if (ctx.prefixed_opcode) {
 		switch (ctx.opcode) {
 			//todo condense all hl top section into one case, all the same operations
 			
 			//RLC R
-		case 0x00:
-		case 0x01:
-		case 0x02:
-		case 0x03:
-		case 0x04:
-		case 0x05:
-		case 0x07:
+		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x07:
 			break;
 
 			//RLC HL
@@ -149,13 +135,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//RRC R
-		case 0x08: 
-		case 0x09: 
-		case 0x0a: 
-		case 0x0b: 
-		case 0x0c: 
-		case 0x0d: 
-		case 0x0f: 
+		case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c: case 0x0d: case 0x0f: 
 			break;
 
 			//RRC HL
@@ -167,13 +147,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//RL R
-		case 0x10: 
-		case 0x11: 
-		case 0x12: 
-		case 0x13: 
-		case 0x14: 
-		case 0x15: 
-		case 0x17: 
+		case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x17: 
 			break;
 
 			//RL HL
@@ -185,13 +159,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//RR R
-		case 0x18:
-		case 0x19:
-		case 0x1a:
-		case 0x1b:
-		case 0x1c:
-		case 0x1d:
-		case 0x1f:
+		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1f:
 			break;
 
 			//RR HL
@@ -203,13 +171,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//SLA R
-		case 0x20:
-		case 0x21:
-		case 0x22:
-		case 0x23:
-		case 0x24:
-		case 0x25:
-		case 0x27:
+		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x27:
 			break;
 
 			//SLA HL
@@ -221,13 +183,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//SRA R
-		case 0x28: 
-		case 0x29: 
-		case 0x2a: 
-		case 0x2b: 
-		case 0x2c: 
-		case 0x2d: 
-		case 0x2f: 
+		case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2f: 
 			break;
 
 			//SRA HL
@@ -239,13 +195,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//SWAP R
-		case 0x30: 
-		case 0x31: 
-		case 0x32: 
-		case 0x33: 
-		case 0x34: 
-		case 0x35: 
-		case 0x37: 
+		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x37: 
 			break;
 
 			//SWAP HL
@@ -257,13 +207,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			break;
 
 			//SRL R
-		case 0x38:
-		case 0x39:
-		case 0x3a:
-		case 0x3b:
-		case 0x3c:
-		case 0x3d:
-		case 0x3f:
+		case 0x38: case 0x39: case 0x3a: case 0x3b: case 0x3c:case 0x3d: case 0x3f:
 			break;
 
 			//SRL HL
@@ -322,777 +266,632 @@ void CPU::opcode_bus_request(BusRequest& request) {
 		if (is_instruction_done()) {
 			fetch_request(request);
 		}
-		return;
 	}
+	else {
+		switch (ctx.opcode) {
+		case 0x00:
+			break;
 
-	switch (ctx.opcode) {
-		//MISC OPCODES
-	case 0x00: 
-		request.idle = true;
-		break;
+			//LD R R 
+		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x47:
+		case 0x48: case 0x49: case 0x4a: case 0x4b: case 0x4c: case 0x4d: case 0x4f:
+		case 0x50: case 0x51: case 0x52: case 0x53: case 0x54: case 0x55: case 0x57:
+		case 0x58: case 0x59: case 0x5a: case 0x5b: case 0x5c: case 0x5d: case 0x5f:
+		case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x67:
+		case 0x68: case 0x69: case 0x6a: case 0x6b: case 0x6c: case 0x6d: case 0x6f:
+		case 0x78: case 0x79: case 0x7a: case 0x7b: case 0x7c: case 0x7d: case 0x7f:
+			break;
 
-		//LD R R 
-	case 0x40: //b b 
-	case 0x41: //b c
-	case 0x42: //b d
-	case 0x43: //b e
-	case 0x44: //b h
-	case 0x45: //b l
-	case 0x47: //b a
-	case 0x48: //c b
-	case 0x49: //c c 
-	case 0x4a: //c d
-	case 0x4b: //c e
-	case 0x4c: //c h
-	case 0x4d: //c l
-	case 0x4f: //c a
-	case 0x50: //d b
-	case 0x51: //d c
-	case 0x52: //d d
-	case 0x53: //d e
-	case 0x54: //d h
-	case 0x55: //d l
-	case 0x57: //d a
-	case 0x58: //e b
-	case 0x59: //e c
-	case 0x5a: //e d
-	case 0x5b: //e e
-	case 0x5c: //e h
-	case 0x5d: //e l
-	case 0x5f: //e a
-	case 0x60: //h b
-	case 0x61: //h c 
-	case 0x62: //h d
-	case 0x63: //h e
-	case 0x64: //h h
-	case 0x65: //h l
-	case 0x67: //h a
-	case 0x68: //l b
-	case 0x69: //l c
-	case 0x6a: //l d
-	case 0x6b: //l e
-	case 0x6c: //l h
-	case 0x6d: //l l
-	case 0x6f: //l a
-	case 0x78: //a b
-	case 0x79: //a c
-	case 0x7a: //a d
-	case 0x7b: //a e
-	case 0x7c: //a h
-	case 0x7d: //a l
-	case 0x7f: //a a 
-		break;
-
-		//LD R N
-	case 0x06:
-	case 0x16:
-	case 0x26:
-	case 0x0e:
-	case 0x1e:
-	case 0x2e:
-	case 0x3e:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//LD R HL
-	case 0x46:
-	case 0x4e:
-	case 0x56:
-	case 0x5e:
-	case 0x66:
-	case 0x6e:
-	case 0x7e:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//LD HL R :: todo push this to a function
-	case 0x70:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.b); break;
-		}
-		break;
-	case 0x71:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.c); break;
-		}
-		break;
-	case 0x72:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.d); break;
-		}
-		break;
-	case 0x73:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.e); break;
-		}
-		break;
-	case 0x74:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.h); break;
-		}
-		break;
-	case 0x75:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.l); break;
-		}
-		break;
-	case 0x77:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.a); break;
-		}
-		break;
-
-		//LD HL N
-	case 0x36:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: write_rr(rHL, request, ctx.first_fetch); break;
-		}
-		break;
-
-		//LD A BC/DE
-	case 0x0a:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rBC, request); break;
-		}
-		break;
-
-	case 0x1a: 
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rDE, request); break;
-		}
-		break;
-
-		//LD BC/DE A
-	case 0x02:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rBC, request, registers.a); break;
-		}
-		break;
-	case 0x12:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rDE, request, registers.a); break;
-		}
-		break;
-
-		//LD A NN
-	case 0xfa:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: read_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request); break;
-		}
-		break;
-
-		//LD NN A
-	case 0xea:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, registers.a); break;
-		}
-		break;
-
-		//LDH A (C)
-	case 0xf2:
-		switch (ctx.m_cycles) {
-		case 0: read_nn(u16(0xff00 | registers.c), request); break;
-		}
-		break;
-
-		//LDH (C) A
-	case 0xe2:
-		switch (ctx.m_cycles) {
-		case 0: write_nn(u16(0xff00 | registers.c), request, registers.a); break;
-		}
-		break;
-
-		//LDH A N
-	case 0xf0:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_nn(u16(0xff00 | ctx.first_fetch), request); break;
-		}
-		break;
-
-		//LDH N A
-	case 0xe0:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: write_nn(u16(0xff00 | ctx.first_fetch), request, registers.a); break;
-		}
-		break;
-
-		//LD A HL-
-	case 0x3a:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//LD HL- A
-	case 0x32:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.a); break;
-		}
-		break;
-
-		//LD A HL+
-	case 0x2a:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//LD HL+ A
-	case 0x22:
-		switch (ctx.m_cycles) {
-		case 0: write_rr(rHL, request, registers.a); break;
-		}
-		break;
-
-		//LD RR NN
-	case 0x01:
-	case 0x11:
-	case 0x21:
-	case 0x31:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		}
-		break;
-
-		//LD NN SP
-	case 0x08:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, u8(registers.sp & 0xff)); break;
-		case 3: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, u8(registers.sp >> 8)); break;
-		}
-		break;
-
-		//LD  SP HL
-	case 0xf9:
-		switch (ctx.m_cycles) {
-		case 0: request.address = get_joined_register(rHL); request.idle = true; break;
-		}
-		break;
-
-		//PUSH RR :: todo push this to a function
-	case 0xc5:
-		switch (ctx.m_cycles) {
-		case 0: request.address = registers.sp; request.idle; break;
-		case 1: write_nn(registers.sp, request, registers.b); break;
-		case 2: write_nn(registers.sp, request, registers.c); break;
-		}
-		break;
-	case 0xd5:
-		switch (ctx.m_cycles) {
-		case 0: request.address = registers.sp; request.idle; break;
-		case 1: write_nn(registers.sp, request, registers.d); break;
-		case 2: write_nn(registers.sp, request, registers.e); break;
-		}
-		break;
-	case 0xe5:
-		switch (ctx.m_cycles) {
-		case 0: request.address = registers.sp; request.idle; break;
-		case 1: write_nn(registers.sp, request, registers.h); break;
-		case 2: write_nn(registers.sp, request, registers.l); break;
-		}
-		break;
-	case 0xf5:
-		switch (ctx.m_cycles) {
-		case 0: request.address = registers.sp; request.idle; break;
-		case 1: write_nn(registers.sp, request, registers.a); break;
-		case 2: write_nn(registers.sp, request, registers.f & 0xf0); break;
-		}
-		break;
-
-		//POP RR
-	case 0xc1:
-	case 0xd1:
-	case 0xe1:
-	case 0xf1:
-		switch (ctx.m_cycles) {
-		case 0: read_nn(registers.sp, request); break;
-		case 1: read_nn(registers.sp, request); break;
-		}
-		break;
-
-		//LD HL SP+E
-	case 0xf8:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: request.address = 0x0000; request.idle = true; break;
-
-		}
-		break;
-
-		//ADD R
-	case 0x80:
-	case 0x81:
-	case 0x82:
-	case 0x83:
-	case 0x84:
-	case 0x85:
-	case 0x87:
-		break;
-
-		//ADD HL
-	case 0x86:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//ADD N
-	case 0xc6:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//ADC R
-	case 0x88: 
-	case 0x89: 
-	case 0x8a: 
-	case 0x8b: 
-	case 0x8c: 
-	case 0x8d: 
-	case 0x8f: 
-		break;
-
-		//ADC HL
-	case 0x8e:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//ADC N
-	case 0xce:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//SUB R
-	case 0x90: 
-	case 0x91: 
-	case 0x92: 
-	case 0x93: 
-	case 0x94: 
-	case 0x95: 
-	case 0x97: 
-		break;
-
-		//SUB HL
-	case 0x96:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//SUB N
-	case 0xd6:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//SBC R
-	case 0x98: 
-	case 0x99: 
-	case 0x9a: 
-	case 0x9b: 
-	case 0x9c: 
-	case 0x9d: 
-	case 0x9f: 
-		break;
-
-		//SBC HL
-	case 0x9e:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//SBC N
-	case 0xde:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//CP R
-	case 0xb8: 
-	case 0xb9: 
-	case 0xba: 
-	case 0xbb: 
-	case 0xbc: 
-	case 0xbd: 
-	case 0xbf: 
-		break;
-
-		//CP HL
-	case 0xbe:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//CP N
-	case 0xfe:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//INC R
-	case 0x04: 
-	case 0x0c: 
-	case 0x14: 
-	case 0x1c: 
-	case 0x24: 
-	case 0x2c: 
-	case 0x3c: 
-		break;
-
-		//INC (HL)
-	case 0x34:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		case 1: write_rr(rHL, request, u8(ctx.first_fetch + 1)); break;
-		}
-		break;
-
-		//DEC R
-	case 0x05: 
-	case 0x0d: 
-	case 0x15: 
-	case 0x1d: 
-	case 0x25: 
-	case 0x2d: 
-	case 0x3d: 
-		break;
-
-		//DEC (HL)
-	case 0x35:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		case 1: write_rr(rHL, request, u8(ctx.first_fetch - 1)); break;
-		}
-		break;
-
-		//AND R
-	case 0xa0: 
-	case 0xa1: 
-	case 0xa2: 
-	case 0xa3: 
-	case 0xa4: 
-	case 0xa5: 
-	case 0xa7: 
-		break;
-
-		//AND HL
-	case 0xa6:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//AND N
-	case 0xe6:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//OR R
-	case 0xb0: 
-	case 0xb1: 
-	case 0xb2: 
-	case 0xb3: 
-	case 0xb4: 
-	case 0xb5:
-	case 0xb7: 
-		break;
-
-		//OR HL
-	case 0xb6:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//OR N
-	case 0xf6:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//XOR R
-	case 0xa8:
-	case 0xa9:
-	case 0xaa:
-	case 0xab:
-	case 0xac:
-	case 0xad:
-	case 0xaf:
-		break;
-
-		//XOR HL
-	case 0xae:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rHL, request); break;
-		}
-		break;
-
-		//XOR N
-	case 0xee:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		}
-		break;
-
-		//CCF
-	case 0x3f: break;
-		//SCF
-	case 0x37: break;
-		//DAA
-	case 0x27: break;
-		//CPL
-	case 0x2f: break;
-
-		//INC RR
-	case 0x03: 
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rBC); break;
-		}
-		break;
-	case 0x13: 
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rDE); break;
-		}
-		break;
-	case 0x23: 
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rHL); break;
-		}
-		break;
-	case 0x33: request.idle = true; request.address = registers.sp; break;
-
-		//DEC RR
-	case 0x0b:
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rBC); break;
-		}
-		break;
-	case 0x1b:
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rDE); break;
-		}
-		break;
-	case 0x2b:
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = get_joined_register(rHL); break;
-		}
-		break;
-	case 0x3b: request.idle = true; request.address = registers.sp; break;
-
-		//ADD HL RR
-	case 0x09:
-	case 0x19:
-	case 0x29:
-	case 0x39:
-		switch (ctx.m_cycles) {
-		case 0: request.address = 0x0000; request.idle = true; break;
-		}
-		break;
-
-		//ADD SP E
-	case 0xe8:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: request.address = 0x0000; request.idle = true; break;
-		case 2: request.address = 0x0000; request.idle = true; break;
-		}
-		break;
-
-		//JP NN
-	case 0xc3:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: request.address = 0x0000; request.idle = true;
-		}
-		break;
-
-		//JP HL
-	case 0xe9: break;
-
-		//JP CC NN
-	case 0xc2:
-	case 0xca:
-	case 0xd2:
-	case 0xda:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: 
-			if (ctx.jp_condition) {
-				request.idle = true;
-				request.address = 0x0000;
+			//LD R N
+		case 0x06: case 0x16: case 0x26: case 0x0e: case 0x1e: case 0x2e: case 0x3e:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
 			}
 			break;
-		}
-		break;
 
-		//JR E
-	case 0x18:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: request.idle = true; request.address = (registers.pc >> 8); break;
-		}
-		break;
-
-		//JR CC E
-	case 0x20:
-	case 0x28:
-	case 0x30:
-	case 0x38:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: 
-			if (ctx.jp_condition) {
-				request.idle = true;
-				request.address = (registers.pc >> 8);
+			//LD R HL
+		case 0x46: case 0x4e: case 0x56: case 0x5e: case 0x66: case 0x6e: case 0x7e:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
 			}
 			break;
-		}
-		break;
 
-		//CALL NN
-	case 0xcd:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: request.idle = true; request.address = registers.sp; break;
-		case 3: write_rr(rSP, request, (registers.pc >> 8)); break;
-		case 4: write_rr(rSP, request, (registers.pc & 0xff)); break;
-		}
-		break;
-
-		//CALL CC NN
-	case 0xc4:
-	case 0xcc:
-	case 0xd4:
-	case 0xdc:
-		switch (ctx.m_cycles) {
-		case 0: read_pc(request); break;
-		case 1: read_pc(request); break;
-		case 2: 
-			if (ctx.jp_condition) {
-				request.idle = true;
-				request.address = registers.sp;
+			//LD HL R :: todo push this to a function
+		case 0x70:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.b); break;
 			}
 			break;
-		case 3:
-			if (!ctx.jp_condition) break;
-			write_rr(rSP, request, (registers.pc >> 8)); break;
-		case 4:
-			if (!ctx.jp_condition) break;
-			write_rr(rSP, request, (registers.pc & 0xff)); break;
+		case 0x71:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.c); break;
+			}
+			break;
+		case 0x72:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.d); break;
+			}
+			break;
+		case 0x73:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.e); break;
+			}
+			break;
+		case 0x74:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.h); break;
+			}
+			break;
+		case 0x75:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.l); break;
+			}
+			break;
+		case 0x77:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.a); break;
+			}
+			break;
+
+			//LD HL N
+		case 0x36:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: write_rr(rHL, request, ctx.first_fetch); break;
+			}
+			break;
+
+			//LD A BC/DE
+		case 0x0a:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rBC, request); break;
+			}
+			break;
+
+		case 0x1a:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rDE, request); break;
+			}
+			break;
+
+			//LD BC/DE A
+		case 0x02:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rBC, request, registers.a); break;
+			}
+			break;
+		case 0x12:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rDE, request, registers.a); break;
+			}
+			break;
+
+			//LD A NN
+		case 0xfa:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2: read_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request); break;
+			}
+			break;
+
+			//LD NN A
+		case 0xea:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, registers.a); break;
+			}
+			break;
+
+			//LDH A (C)
+		case 0xf2:
+			switch (ctx.m_cycles) {
+			case 0: read_nn(u16(0xff00 | registers.c), request); break;
+			}
+			break;
+
+			//LDH (C) A
+		case 0xe2:
+			switch (ctx.m_cycles) {
+			case 0: write_nn(u16(0xff00 | registers.c), request, registers.a); break;
+			}
+			break;
+
+			//LDH A N
+		case 0xf0:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_nn(u16(0xff00 | ctx.first_fetch), request); break;
+			}
+			break;
+
+			//LDH N A
+		case 0xe0:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: write_nn(u16(0xff00 | ctx.first_fetch), request, registers.a); break;
+			}
+			break;
+
+			//LD A HL-
+		case 0x3a:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//LD HL- A
+		case 0x32:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.a); break;
+			}
+			break;
+
+			//LD A HL+
+		case 0x2a:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//LD HL+ A
+		case 0x22:
+			switch (ctx.m_cycles) {
+			case 0: write_rr(rHL, request, registers.a); break;
+			}
+			break;
+
+			//LD RR NN
+		case 0x01: case 0x11: case 0x21: case 0x31:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			}
+			break;
+
+			//LD NN SP
+		case 0x08:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, u8(registers.sp & 0xff)); break;
+			case 3: write_nn(u16((ctx.second_fetch << 8) | ctx.first_fetch), request, u8(registers.sp >> 8)); break;
+			}
+			break;
+
+			//LD  SP HL
+		case 0xf9:
+			switch (ctx.m_cycles) {
+			case 0: request.address = get_joined_register(rHL); request.idle = true; break;
+			}
+			break;
+
+			//PUSH RR :: todo push this to a function
+		case 0xc5:
+			switch (ctx.m_cycles) {
+			case 0: request.address = registers.sp; request.idle; break;
+			case 1: write_nn(registers.sp, request, registers.b); break;
+			case 2: write_nn(registers.sp, request, registers.c); break;
+			}
+			break;
+		case 0xd5:
+			switch (ctx.m_cycles) {
+			case 0: request.address = registers.sp; request.idle; break;
+			case 1: write_nn(registers.sp, request, registers.d); break;
+			case 2: write_nn(registers.sp, request, registers.e); break;
+			}
+			break;
+		case 0xe5:
+			switch (ctx.m_cycles) {
+			case 0: request.address = registers.sp; request.idle; break;
+			case 1: write_nn(registers.sp, request, registers.h); break;
+			case 2: write_nn(registers.sp, request, registers.l); break;
+			}
+			break;
+		case 0xf5:
+			switch (ctx.m_cycles) {
+			case 0: request.address = registers.sp; request.idle; break;
+			case 1: write_nn(registers.sp, request, registers.a); break;
+			case 2: write_nn(registers.sp, request, registers.f & 0xf0); break;
+			}
+			break;
+
+			//POP RR
+		case 0xc1: case 0xd1: case 0xe1: case 0xf1:
+			switch (ctx.m_cycles) {
+			case 0: read_nn(registers.sp, request); break;
+			case 1: read_nn(registers.sp, request); break;
+			}
+			break;
+
+			//LD HL SP+E
+		case 0xf8:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: request.address = 0x0000; request.idle = true; break;
+
+			}
+			break;
+
+			//ADD R
+		case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85: case 0x87:
+			break;
+
+			//ADD HL
+		case 0x86:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//ADD N
+		case 0xc6:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//ADC R
+		case 0x88: case 0x89: case 0x8a: case 0x8b: case 0x8c: case 0x8d: case 0x8f:
+			break;
+
+			//ADC HL
+		case 0x8e:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//ADC N
+		case 0xce:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//SUB R
+		case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x97:
+			break;
+
+			//SUB HL
+		case 0x96:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//SUB N
+		case 0xd6:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//SBC R
+		case 0x98: case 0x99: case 0x9a: case 0x9b: case 0x9c: case 0x9d: case 0x9f:
+			break;
+
+			//SBC HL
+		case 0x9e:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//SBC N
+		case 0xde:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//CP R
+		case 0xb8: case 0xb9: case 0xba: case 0xbb: case 0xbc: case 0xbd: case 0xbf:
+			break;
+
+			//CP HL
+		case 0xbe:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//CP N
+		case 0xfe:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//INC R
+		case 0x04: case 0x0c: case 0x14: case 0x1c: case 0x24: case 0x2c: case 0x3c:
+			break;
+
+			//INC (HL)
+		case 0x34:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			case 1: write_rr(rHL, request, u8(ctx.first_fetch + 1)); break;
+			}
+			break;
+
+			//DEC R
+		case 0x05: case 0x0d: case 0x15: case 0x1d: case 0x25: case 0x2d: case 0x3d:
+			break;
+
+			//DEC (HL)
+		case 0x35:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			case 1: write_rr(rHL, request, u8(ctx.first_fetch - 1)); break;
+			}
+			break;
+
+			//AND R
+		case 0xa0: case 0xa1: case 0xa2: case 0xa3: case 0xa4: case 0xa5: case 0xa7:
+			break;
+
+			//AND HL
+		case 0xa6:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//AND N
+		case 0xe6:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//OR R
+		case 0xb0: case 0xb1: case 0xb2: case 0xb3: case 0xb4: case 0xb5:case 0xb7:
+			break;
+
+			//OR HL
+		case 0xb6:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//OR N
+		case 0xf6:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//XOR R
+		case 0xa8: case 0xa9: case 0xaa: case 0xab: case 0xac: case 0xad: case 0xaf:
+			break;
+
+			//XOR HL
+		case 0xae:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rHL, request); break;
+			}
+			break;
+
+			//XOR N
+		case 0xee:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			}
+			break;
+
+			//CCF
+		case 0x3f: break;
+			//SCF
+		case 0x37: break;
+			//DAA
+		case 0x27: break;
+			//CPL
+		case 0x2f: break;
+
+			//INC RR
+		case 0x03:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rBC); break;
+			}
+			break;
+		case 0x13:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rDE); break;
+			}
+			break;
+		case 0x23:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rHL); break;
+			}
+			break;
+		case 0x33: request.idle = true; request.address = registers.sp; break;
+
+			//DEC RR
+		case 0x0b:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rBC); break;
+			}
+			break;
+		case 0x1b:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rDE); break;
+			}
+			break;
+		case 0x2b:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = get_joined_register(rHL); break;
+			}
+			break;
+		case 0x3b: request.idle = true; request.address = registers.sp; break;
+
+			//ADD HL RR
+		case 0x09: case 0x19: case 0x29: case 0x39:
+			switch (ctx.m_cycles) {
+			case 0: request.address = 0x0000; request.idle = true; break;
+			}
+			break;
+
+			//ADD SP E
+		case 0xe8:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: request.address = 0x0000; request.idle = true; break;
+			case 2: request.address = 0x0000; request.idle = true; break;
+			}
+			break;
+
+			//JP NN
+		case 0xc3:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2: request.address = 0x0000; request.idle = true;
+			}
+			break;
+
+			//JP HL
+		case 0xe9: break;
+
+			//JP CC NN
+		case 0xc2: case 0xca: case 0xd2: case 0xda:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2:
+				if (ctx.jp_condition) {
+					request.idle = true;
+					request.address = 0x0000;
+				}
+				break;
+			}
+			break;
+
+			//JR E
+		case 0x18:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: request.idle = true; request.address = (registers.pc >> 8); break;
+			}
+			break;
+
+			//JR CC E
+		case 0x20: case 0x28: case 0x30: case 0x38:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1:
+				if (ctx.jp_condition) {
+					request.idle = true;
+					request.address = (registers.pc >> 8);
+				}
+				break;
+			}
+			break;
+
+			//CALL NN
+		case 0xcd:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2: request.idle = true; request.address = registers.sp; break;
+			case 3: write_rr(rSP, request, (registers.pc >> 8)); break;
+			case 4: write_rr(rSP, request, (registers.pc & 0xff)); break;
+			}
+			break;
+
+			//CALL CC NN
+		case 0xc4: case 0xcc: case 0xd4: case 0xdc:
+			switch (ctx.m_cycles) {
+			case 0: read_pc(request); break;
+			case 1: read_pc(request); break;
+			case 2:
+				if (ctx.jp_condition) {
+					request.idle = true;
+					request.address = registers.sp;
+				}
+				break;
+			case 3:
+				if (!ctx.jp_condition) break;
+				write_rr(rSP, request, (registers.pc >> 8)); break;
+			case 4:
+				if (!ctx.jp_condition) break;
+				write_rr(rSP, request, (registers.pc & 0xff)); break;
+			}
+			break;
+
+			//RET
+		case 0xc9:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rSP, request); break;
+			case 1: read_rr(rSP, request); break;
+			case 2: request.address = 0x0000; request.idle = false; break;
+			}
+			break;
+
+			//RET CC
+		case 0xc0: case 0xc8: case 0xd0: case 0xd8:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = 0x0000; break;
+			case 1:
+				if (!ctx.jp_condition) break;
+				read_rr(rSP, request); break;
+			case 2:
+				if (!ctx.jp_condition) break;
+				read_rr(rSP, request); break;
+			case 3:
+				if (!ctx.jp_condition) break;
+				request.idle = true; request.address = 0x0000; break;
+			}
+			break;
+
+			//RETI 
+		case 0xd9:
+			switch (ctx.m_cycles) {
+			case 0: read_rr(rSP, request); break;
+			case 1: read_rr(rSP, request); break;
+			case 2: request.address = 0x0000; request.idle = false; break;
+			}
+			break;
+
+			//RST
+		case 0xc7: case 0xcf: case 0xd7: case 0xdf: case 0xe7: case 0xef: case 0xf7: case 0xff:
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = registers.sp; break;
+			case 1: write_rr(rSP, request, (registers.pc >> 8)); break;
+			case 2: write_rr(rSP, request, (registers.pc & 0xff)); break;
+			}
+			break;
+
+			//RLCA
+		case 0x07: break;
+
+			//RRCA
+		case 0x0f: break;
+
+			//RLA
+		case 0x17: break;
+
+			//RRA 
+		case 0x1f: break;
 		}
-		break;
 
-		//RET
-	case 0xc9:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rSP, request); break;
-		case 1: read_rr(rSP, request); break;
-		case 2: request.address = 0x0000; request.idle = false; break;
+		if (is_instruction_done()) {
+			fetch_request(request);
 		}
-		break;
-	
-		//RET CC
-	case 0xc0:
-	case 0xc8:
-	case 0xd0:
-	case 0xd8:
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = 0x0000; break;
-		case 1:
-			if (!ctx.jp_condition) break;
-			read_rr(rSP, request); break;
-		case 2:
-			if (!ctx.jp_condition) break;
-			read_rr(rSP, request); break;
-		case 3:
-			if (!ctx.jp_condition) break;
-			request.idle = true; request.address = 0x0000; break;
-		}
-		break;
-
-		//RETI 
-	case 0xd9:
-		switch (ctx.m_cycles) {
-		case 0: read_rr(rSP, request); break;
-		case 1: read_rr(rSP, request); break;
-		case 2: request.address = 0x0000; request.idle = false; break;
-		}
-		break;
-
-		//RST
-	case 0xc7:
-	case 0xcf: 
-	case 0xd7: 
-	case 0xdf: 
-	case 0xe7: 
-	case 0xef: 
-	case 0xf7: 
-	case 0xff: 
-		switch (ctx.m_cycles) {
-		case 0: request.idle = true; request.address = registers.sp; break;
-		case 1: write_rr(rSP, request, (registers.pc >> 8)); break;
-		case 2: write_rr(rSP, request, (registers.pc & 0xff)); break;
-		}
-		break;
-
-		//RLCA
-	case 0x07: break;
-
-		//RRCA
-	case 0x0f: break;
-
-		//RLA
-	case 0x17: break;
-
-		//RRA 
-	case 0x1f: break;
-	}
-
-	if (is_instruction_done()) {
-		fetch_request(request);
-		return;
 	}
 }
-
-/*   Opcode definitions for bus responses   */
 void CPU::opcode_bus_response(BusResponse response) {
-	if (ctx.t_cycles == 3) {
-		//variables for calculations inside case statements todo remove this <<<<<
-		u8 e = 0x00;
-		u8 res8 = 0x00;
-		u16 res16 = 0x0000;
-		int8_t adj = 0x00;
+	u8 e = 0x00; //this is annoying but id rather not redclare in every switch :(
+	u8 adj = 0x00;
+	u8 res8 = 0x00;
+	u16 res16 = 0x00;
 
+	//OH NO AN EXTRA 40 bits :O
+	
+
+	if (ctx.t_cycles == 3) {
 		if (ctx.prefixed_opcode) {
 			switch (ctx.opcode) {
 				//RLC R
@@ -1724,102 +1523,26 @@ void CPU::opcode_bus_response(BusResponse response) {
 			case 0x7d: registers.a = registers.l; break;
 			case 0x7f: registers.a = registers.a; break;
 
-				//LD R N :: todo push this into a function
-			case 0x06:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.b = ctx.first_fetch; break;
-				}
-				break;
-			case 0x16:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.d = ctx.first_fetch; break;
-				}
-				break;
-			case 0x26:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.h = ctx.first_fetch; break;
-				}
-				break;
-			case 0x0e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.c = ctx.first_fetch; break;
-				}
-				break;
-			case 0x1e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.e = ctx.first_fetch; break;
-				}
-				break;
-			case 0x2e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.l = ctx.first_fetch; break;
-				}
-				break;
-			case 0x3e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: registers.a = ctx.first_fetch; break;
-				}
-				break;
+				//LD R N
+			case 0x06: ld_r(registers.b, response.value); break;
+			case 0x0e: ld_r(registers.c, response.value); break;
+			case 0x16: ld_r(registers.d, response.value); break;
+			case 0x1e: ld_r(registers.e, response.value); break;
+			case 0x26: ld_r(registers.h, response.value); break;
+			case 0x2e: ld_r(registers.l, response.value); break;
+			case 0x3e: ld_r(registers.a, response.value); break;
 
-				//LD R HL :: todo push this into a function
-			case 0x46:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.b = ctx.first_fetch; break;
-				}
-				break;
-			case 0x4e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.c = ctx.first_fetch; break;
-				}
-				break;
-			case 0x56:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.d = ctx.first_fetch; break;
-				}
-				break;
-			case 0x5e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.e = ctx.first_fetch; break;
-				}
-				break;
-			case 0x66:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.h = ctx.first_fetch; break;
-				}
-				break;
-			case 0x6e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.l = ctx.first_fetch; break;
-				}
-				break;
-			case 0x7e:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; break;
-				case 1: registers.a = ctx.first_fetch; break;
-				}
-				break;
+				//LD R HL
+			case 0x46: ld_r_hl(registers.b, response.value); break;
+			case 0x4e: ld_r_hl(registers.c, response.value); break;
+			case 0x56: ld_r_hl(registers.d, response.value); break;
+			case 0x5e: ld_r_hl(registers.e, response.value); break;
+			case 0x66: ld_r_hl(registers.h, response.value); break;
+			case 0x6e: ld_r_hl(registers.l, response.value); break;
+			case 0x7e: ld_r_hl(registers.a, response.value); break;
 
 				//LD HL R
-			case 0x70:
-			case 0x71:
-			case 0x72:
-			case 0x73:
-			case 0x74:
-			case 0x75:
-			case 0x77:
+			case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x77:
 				break;
 
 				//LD HL N
@@ -1924,35 +1647,11 @@ void CPU::opcode_bus_response(BusResponse response) {
 				}
 				break;
 
-				//LD RR NN :: todo push this into a function
-			case 0x01:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: ctx.second_fetch = response.value; registers.pc++; break;
-				case 2: set_joined_register(rBC, u16((ctx.second_fetch << 8) | ctx.first_fetch));
-				}
-				break;
-			case 0x11:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: ctx.second_fetch = response.value; registers.pc++; break;
-				case 2: set_joined_register(rDE, u16((ctx.second_fetch << 8) | ctx.first_fetch));
-				}
-				break;
-			case 0x21:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: ctx.second_fetch = response.value; registers.pc++; break;
-				case 2: set_joined_register(rHL, u16((ctx.second_fetch << 8) | ctx.first_fetch));
-				}
-				break;
-			case 0x31:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1: ctx.second_fetch = response.value; registers.pc++; break;
-				case 2: set_joined_register(rSP, u16((ctx.second_fetch << 8) | ctx.first_fetch));
-				}
-				break;
+				//LD RR NN 
+			case 0x01: ld_rr_nn(rBC, response.value); break;
+			case 0x11: ld_rr_nn(rDE, response.value); break;
+			case 0x21: ld_rr_nn(rHL, response.value); break;
+			case 0x31: ld_rr_nn(rSP, response.value); break;
 
 				//LD NN SP
 			case 0x08:
@@ -1983,34 +1682,10 @@ void CPU::opcode_bus_response(BusResponse response) {
 				break;
 
 				//POP RR :: todo push this into a function
-			case 0xc1:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.sp++; break;
-				case 1: ctx.second_fetch = response.value; registers.sp++; break;
-				case 2: set_joined_register(rBC, u16((ctx.second_fetch << 8) | ctx.first_fetch)); break;
-				}
-				break;
-			case 0xd1:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.sp++; break;
-				case 1: ctx.second_fetch = response.value; registers.sp++; break;
-				case 2: set_joined_register(rDE, u16((ctx.second_fetch << 8) | ctx.first_fetch)); break;
-				}
-				break;
-			case 0xe1:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.sp++; break;
-				case 1: ctx.second_fetch = response.value; registers.sp++; break;
-				case 2: set_joined_register(rHL, u16((ctx.second_fetch << 8) | ctx.first_fetch)); break;
-				}
-				break;
-			case 0xf1:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.sp++; break;
-				case 1: ctx.second_fetch = response.value; registers.sp++; break;
-				case 2: set_joined_register(rAF, u16(((ctx.second_fetch << 8) | ctx.first_fetch) & 0xfff0)); break;
-				}
-				break;
+			case 0xc1: pop_rr(rBC, response.value); break;
+			case 0xd1: pop_rr(rDE, response.value); break;
+			case 0xe1: pop_rr(rHL, response.value); break;
+			case 0xf1: pop_rr(rAF, response.value); break;
 
 				//LD HL SP+E
 			case 0xf8:
@@ -2197,6 +1872,7 @@ void CPU::opcode_bus_response(BusResponse response) {
 				case 0: ctx.first_fetch = response.value; break;
 				case 1:
 					res8 = ctx.first_fetch - 1;
+
 					set_flag(fN, true);
 					set_flag(fZ, false);
 					set_flag(fH, false);
@@ -2306,181 +1982,23 @@ void CPU::opcode_bus_response(BusResponse response) {
 				set_flag(fH, true);
 				break;
 
-				//INC RR :: todo push this into a function
-			case 0x03:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rBC, u16(get_joined_register(rBC) + 1)); break;
-				}
-				break;
-			case 0x13:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rDE, u16(get_joined_register(rDE) + 1)); break;
-				}
-				break;
-			case 0x23:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rHL, u16(get_joined_register(rHL) + 1)); break;
-				}
-				break;
-
-			case 0x33:
-				switch (ctx.m_cycles) {
-				case 0: registers.sp++; break;
-				}
-				break;
+				//INC RR
+			case 0x03: inc_rr(rBC); break;
+			case 0x13: inc_rr(rDE); break;
+			case 0x23: inc_rr(rHL); break;
+			case 0x33: inc_rr(rSP); break;
 
 				//DEC RR
-			case 0x0b:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rBC, u16(get_joined_register(rBC) - 1)); break;
-				}
-				break;
-			case 0x1b:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rDE, u16(get_joined_register(rDE) - 1)); break;
-				}
-				break;
-			case 0x2b:
-				switch (ctx.m_cycles) {
-				case 0: set_joined_register(rHL, u16(get_joined_register(rHL) - 1)); break;
-				}
-				break;
+			case 0x0b: dec_rr(rBC); break;
+			case 0x1b: dec_rr(rDE); break;
+			case 0x2b: dec_rr(rHL); break;
+			case 0x3b: dec_rr(rSP); break;
 
-			case 0x3b:
-				switch (ctx.m_cycles) {
-				case 0: registers.sp--; break;
-				}
-				break;
-
-				//ADD HL RR :: todo push this into a function
-			case 0x09:
-				switch (ctx.m_cycles) {
-				case 0:
-					res8 = registers.l + registers.c;
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-					set_flag(fC, false);
-
-					if ((registers.l & 0x0f) + (registers.c & 0x0f) > 0x0f) set_flag(fH, true);
-					if (registers.l + registers.c > 0xff) set_flag(fC, true);
-
-					registers.l = res8;
-					break;
-				case 1:
-					res8 = registers.h + registers.b + (get_flag(fC) ? 0x01 : 0x00);
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-
-					if ((registers.h & 0x0f) + (registers.b & 0x0f) + (get_flag(fC) ? 0x01 : 0x00) > 0x0f) set_flag(fH, true);
-					if (registers.h + registers.b + (get_flag(fC) ? 0x01 : 0x00) > 0xff) {
-						set_flag(fC, true);
-					}
-					else {
-						set_flag(fC, false);
-					}
-
-					registers.h = res8;
-					break;
-				}
-				break;
-			case 0x19:
-				switch (ctx.m_cycles) {
-				case 0:
-					res8 = registers.l + registers.e;
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-					set_flag(fC, false);
-
-					if ((registers.l & 0x0f) + (registers.e & 0x0f) > 0x0f) set_flag(fH, true);
-					if (registers.l + registers.e > 0xff) set_flag(fC, true);
-
-					registers.l = res8;
-					break;
-				case 1:
-					res8 = registers.h + registers.d + (get_flag(fC) ? 0x01 : 0x00);
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-
-					if ((registers.h & 0x0f) + (registers.d & 0x0f) + (get_flag(fC) ? 0x01 : 0x00) > 0x0f) set_flag(fH, true);
-					if (registers.h + registers.d + (get_flag(fC) ? 0x01 : 0x00) > 0xff) {
-						set_flag(fC, true);
-					}
-					else {
-						set_flag(fC, false);
-					}
-
-					registers.h = res8;
-					break;
-				}
-				break;
-			case 0x29:
-				switch (ctx.m_cycles) {
-				case 0:
-					res8 = registers.l + registers.l;
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-					set_flag(fC, false);
-
-					if ((registers.l & 0x0f) + (registers.l & 0x0f) > 0x0f) set_flag(fH, true);
-					if (registers.l + registers.l > 0xff) set_flag(fC, true);
-
-					registers.l = res8;
-					break;
-				case 1:
-					res8 = registers.h + registers.h + (get_flag(fC) ? 0x01 : 0x00);
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-
-					if ((registers.h & 0x0f) + (registers.h & 0x0f) + (get_flag(fC) ? 0x01 : 0x00) > 0x0f) set_flag(fH, true);
-					if (registers.h + registers.h + (get_flag(fC) ? 0x01 : 0x00) > 0xff) {
-						set_flag(fC, true);
-					}
-					else {
-						set_flag(fC, false);
-					}
-
-					registers.h = res8;
-					break;
-				}
-				break;
-			case 0x39:
-				switch (ctx.m_cycles) {
-				case 0:
-					res8 = registers.l + (registers.sp & 0xff);
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-					set_flag(fC, false);
-
-					if ((registers.l & 0x0f) + ((registers.sp & 0xff) & 0x0f) > 0x0f) set_flag(fH, true);
-					if (registers.l + (registers.sp & 0xff) > 0xff) set_flag(fC, true);
-
-					registers.l = res8;
-					break;
-				case 1:
-					res8 = registers.h + (registers.sp >> 8) + (get_flag(fC) ? 0x01 : 0x00);
-
-					set_flag(fN, false);
-					set_flag(fH, false);
-
-					if ((registers.h & 0x0f) + ((registers.sp >> 8) & 0x0f) + (get_flag(fC) ? 0x01 : 0x00) > 0x0f) set_flag(fH, true);
-					if (registers.h + (registers.sp >> 8) + (get_flag(fC) ? 0x01 : 0x00) > 0xff) {
-						set_flag(fC, true);
-					}
-					else {
-						set_flag(fC, false);
-					}
-
-					registers.h = res8;
-					break;
-				}
-				break;
+				//ADD HL RR 
+			case 0x09: add_hl_rr(registers.c, registers.b); break;
+			case 0x19: add_hl_rr(registers.e, registers.d); break;
+			case 0x29: add_hl_rr(registers.l, registers.h); break;
+			case 0x39: add_hl_rr(registers.sp & 0xff, registers.sp >> 8); break;
 
 				//ADD SP E
 			case 0xe8:
@@ -2520,98 +2038,10 @@ void CPU::opcode_bus_response(BusResponse response) {
 			case 0xe9: registers.pc = get_joined_register(rHL); break;
 
 				//JP CC NN :: todo push this into a function
-			case 0xc2:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1:
-					ctx.second_fetch = response.value;
-					registers.pc++;
-
-					if (!get_flag(fZ)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.instruction_length--;
-						ctx.jp_condition = false;
-					}
-
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
-			case 0xca:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1:
-					ctx.second_fetch = response.value;
-					registers.pc++;
-
-					if (get_flag(fZ)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.instruction_length--;
-						ctx.jp_condition = false;
-					}
-
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
-			case 0xd2:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1:
-					ctx.second_fetch = response.value;
-					registers.pc++;
-
-					if (!get_flag(fC)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.instruction_length--;
-						ctx.jp_condition = false;
-					}
-
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
-			case 0xda:
-				switch (ctx.m_cycles) {
-				case 0: ctx.first_fetch = response.value; registers.pc++; break;
-				case 1:
-					ctx.second_fetch = response.value;
-					registers.pc++;
-
-					if (get_flag(fC)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.instruction_length--;
-						ctx.jp_condition = false;
-					}
-
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
+			case 0xc2: jp_cc(!get_flag(fZ), response.value); break;
+			case 0xca: jp_cc(get_flag(fZ), response.value); break;
+			case 0xd2: jp_cc(!get_flag(fC), response.value); break;
+			case 0xda: jp_cc(get_flag(fC), response.value); break;
 
 				//JR E
 			case 0x18:
@@ -2637,157 +2067,10 @@ void CPU::opcode_bus_response(BusResponse response) {
 				break;
 
 				//JR CC E :: todo push this into a function
-			case 0x20:
-				switch (ctx.m_cycles) {
-				case 0:
-					ctx.first_fetch = response.value;
-					registers.pc++;
-
-					if (!get_flag(fZ)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.jp_condition = false;
-						ctx.instruction_length--;
-					}
-					break;
-				case 1:
-					if (!ctx.jp_condition) break;
-
-					e = ctx.first_fetch;
-					res8 = (e >> 7) & 0x01;
-					ctx.first_fetch = e + (registers.pc & 0xff);
-
-					adj = 0;
-					if (res8 == 0 && (e + (registers.pc & 0xff)) > 0xff) {
-						adj = 1;
-					}
-					else if (res8 == 1 && (e + (registers.pc & 0xff)) <= 0xff) {
-						adj = -1;
-					}
-
-					ctx.second_fetch = adj + (registers.pc >> 8);
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
-			case 0x28:
-				switch (ctx.m_cycles) {
-				case 0:
-					ctx.first_fetch = response.value;
-					registers.pc++;
-
-					if (get_flag(fZ)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.jp_condition = false;
-						ctx.instruction_length--;
-					}
-					break;
-				case 1:
-					if (!ctx.jp_condition) break;
-
-					e = ctx.first_fetch;
-					res8 = (e >> 7) & 0x01;
-					ctx.first_fetch = e + (registers.pc & 0xff);
-
-					adj = 0;
-					if (res8 == 0 && (e + (registers.pc & 0xff)) > 0xff) {
-						adj = 1;
-					}
-					else if (res8 == 1 && (e + (registers.pc & 0xff)) <= 0xff) {
-						adj = -1;
-					}
-
-					ctx.second_fetch = adj + (registers.pc >> 8);
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
-			case 0x30:
-				switch (ctx.m_cycles) {
-				case 0:
-					ctx.first_fetch = response.value;
-					registers.pc++;
-
-					if (!get_flag(fC)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.jp_condition = false;
-						ctx.instruction_length--;
-					}
-					break;
-				case 1:
-					if (!ctx.jp_condition) break;
-
-					e = ctx.first_fetch;
-					res8 = (e >> 7) & 0x01;
-					ctx.first_fetch = e + (registers.pc & 0xff);
-
-					adj = 0;
-					if (res8 == 0 && (e + (registers.pc & 0xff)) > 0xff) {
-						adj = 1;
-					}
-					else if (res8 == 1 && (e + (registers.pc & 0xff)) <= 0xff) {
-						adj = -1;
-					}
-
-					ctx.second_fetch = adj + (registers.pc >> 8);
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-				}
-				break;
-			case 0x38:
-				switch (ctx.m_cycles) {
-				case 0:
-					ctx.first_fetch = response.value;
-					registers.pc++;
-
-					if (get_flag(fC)) {
-						ctx.jp_condition = true;
-					}
-					else {
-						ctx.jp_condition = false;
-						ctx.instruction_length--;
-					}
-					break;
-				case 1:
-					if (!ctx.jp_condition) break;
-
-					e = ctx.first_fetch;
-					res8 = (e >> 7) & 0x01;
-					ctx.first_fetch = e + (registers.pc & 0xff);
-
-					adj = 0;
-					if (res8 == 0 && (e + (registers.pc & 0xff)) > 0xff) {
-						adj = 1;
-					}
-					else if (res8 == 1 && (e + (registers.pc & 0xff)) <= 0xff) {
-						adj = -1;
-					}
-
-					ctx.second_fetch = adj + (registers.pc >> 8);
-					break;
-				case 2:
-					if (ctx.jp_condition) {
-						registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-					}
-					break;
-				}
-				break;
+			case 0x20: jr_cc(!get_flag(fZ), response.value); break;
+			case 0x28: jr_cc(get_flag(fZ), response.value); break;
+			case 0x30: jr_cc(!get_flag(fC), response.value); break;
+			case 0x38: jr_cc(get_flag(fC), response.value); break;
 
 				//CALL NN
 			case 0xcd:
@@ -2831,20 +2114,14 @@ void CPU::opcode_bus_response(BusResponse response) {
 				break;
 
 				//RST N
-			case 0xc7: rst(0x0000); break;
-			case 0xcf: rst(0x0008); break;
-			case 0xd7: rst(0x0010); break;
-			case 0xdf: rst(0x0018); break;
-			case 0xe7: rst(0x0020); break;
-			case 0xef: rst(0x0028); break;
-			case 0xf7: rst(0x0030); break;
-			case 0xff: rst(0x0038); break;
+			case 0xc7: rst(0x0000); break; case 0xcf: rst(0x0008); break;
+	        case 0xd7: rst(0x0010); break; case 0xdf: rst(0x0018); break; 
+			case 0xe7: rst(0x0020); break; case 0xef: rst(0x0028); break;
+			case 0xf7: rst(0x0030); break; case 0xff: rst(0x0038); break;
 
 				//RLCA + RRCA + RLA + RRA
-			case 0x07: rlca(); break;
-			case 0x0f: rrca(); break;
-			case 0x17: rla(); break;
-			case 0x1f: rra(); break;
+			case 0x07: rlca(); break; case 0x0f: rrca(); break;
+            case 0x17: rla(); break; case 0x1f: rra(); break;
 			}
 		}
 
@@ -2865,12 +2142,11 @@ void CPU::opcode_bus_response(BusResponse response) {
 	ctx.t_cycles++;
 }
 
-//FETCH
+/*   Fetch Request and Response   */
 void CPU::fetch_request(BusRequest& request) {
 	request.address = registers.pc;
 	request.reading = true;
 }
-
 void CPU::fetch_response(BusResponse response) {
 	if (ctx.t_cycles == 3) {
 		ctx.opcode = response.value;
@@ -2903,6 +2179,7 @@ void CPU::fetch_response(BusResponse response) {
 	ctx.t_cycles++;
 }
 
+/*   Check For Instruction Length   */
 bool CPU::is_instruction_done() {
 	if (ctx.m_cycles == ctx.instruction_length - (ctx.prefixed_opcode ? 2 : 1)) {
 		ctx.prefix_check = false;
@@ -2912,7 +2189,7 @@ bool CPU::is_instruction_done() {
 	return false;
 }
 
-//OPCODE FUNCTIONS
+/*   Bus Request Functions   */
 void CPU::idle(BusRequest& request) {
 	request.idle = true;
 }
@@ -2946,6 +2223,42 @@ void CPU::write_nn(u16 address, BusRequest& request, u8 value) {
 
 	if (ctx.t_cycles == 3) {
 		request.commit = true;
+	}
+}
+
+/*   Opcode Logic and Implementations   */
+void CPU::ld_r(u8& reg, u8 value) {
+	switch (ctx.m_cycles) {
+	case 0: ctx.first_fetch = value; registers.pc++; break;
+	case 1: reg = ctx.first_fetch; break;
+	}
+}
+void CPU::ld_r_hl(u8& reg, u8 value) {
+	switch (ctx.m_cycles) {
+	case 0: ctx.first_fetch = value; break;
+	case 1: reg = ctx.first_fetch; break;
+	}
+}
+void CPU::ld_rr_nn(CPUJoinedRegisters reg, u8 value) {
+	switch (ctx.m_cycles) {
+	case 0: ctx.first_fetch = value; registers.pc++; break;
+	case 1: ctx.second_fetch = value; registers.pc++; break;
+	case 2: set_joined_register(reg, u16((ctx.second_fetch << 8) | ctx.first_fetch));
+	}
+}
+
+void CPU::pop_rr(CPUJoinedRegisters reg, u8 value) {
+	
+	switch (ctx.m_cycles) {
+	case 0: ctx.first_fetch = value; registers.sp++; break;
+	case 1: ctx.second_fetch = value; registers.sp++; break;
+	case 2: 
+		if (reg == rAF) {
+			ctx.first_fetch &= 0xf0;
+		}
+
+		set_joined_register(reg, u16((ctx.second_fetch << 8) | ctx.first_fetch)); 
+		break;
 	}
 }
 
@@ -3054,6 +2367,52 @@ void CPU::xor_r(u8 value) {
 	registers.a = result;
 }
 
+void CPU::inc_rr(CPUJoinedRegisters reg) {
+	switch (ctx.m_cycles) {
+	case 0: set_joined_register(reg, u16(get_joined_register(reg) + 1)); break;
+	}
+}
+void CPU::dec_rr(CPUJoinedRegisters reg) {
+	switch (ctx.m_cycles) {
+	case 0: set_joined_register(reg, u16(get_joined_register(reg) - 1)); break;
+	}
+}
+
+void CPU::add_hl_rr(u8 reg_low, u8 reg_high) {
+	u8 result = 0x00;
+
+	switch (ctx.m_cycles) {
+	case 0:
+		result = registers.l + reg_low;
+
+		set_flag(fN, false);
+		set_flag(fH, false);
+		set_flag(fC, false);
+
+		if ((registers.l & 0x0f) + (reg_low & 0x0f) > 0x0f) set_flag(fH, true);
+		if (registers.l + reg_low > 0xff) set_flag(fC, true);
+
+		registers.l = result;
+		break;
+	case 1:
+		result = registers.h + reg_high + (get_flag(fC) ? 0x01 : 0x00);
+
+		set_flag(fN, false);
+		set_flag(fH, false);
+
+		if ((registers.h & 0x0f) + (reg_high & 0x0f) + (get_flag(fC) ? 0x01 : 0x00) > 0x0f) set_flag(fH, true);
+		if (registers.h + reg_high + (get_flag(fC) ? 0x01 : 0x00) > 0xff) {
+			set_flag(fC, true);
+		}
+		else {
+			set_flag(fC, false);
+		}
+
+		registers.h = result;
+		break;
+	}
+}
+
 void CPU::daa() {
 	u8 a = registers.a;
 	u8 adj = 0x00;
@@ -3095,6 +2454,71 @@ void CPU::daa() {
 	if (set_c || C) set_flag(fC, true);
 }
 
+void CPU::jp_cc(bool condition, u8 response_value) {
+	switch (ctx.m_cycles) {
+	case 0: ctx.first_fetch = response_value; registers.pc++; break;
+	case 1:
+		ctx.second_fetch = response_value;
+		registers.pc++;
+
+		if (condition) {
+			ctx.jp_condition = true;
+		}
+		else {
+			ctx.instruction_length--;
+			ctx.jp_condition = false;
+		}
+
+		break;
+	case 2:
+		if (ctx.jp_condition) {
+			registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
+		}
+		break;
+	}
+}
+void CPU::jr_cc(bool condition, u8 response_value) {
+	u8 result = 0x00;
+	u8 e = 0x00;
+	u8 adj = 0x00;
+
+	switch (ctx.m_cycles) {
+	case 0:
+		ctx.first_fetch = response_value;
+		registers.pc++;
+
+		if (condition) {
+			ctx.jp_condition = true;
+		}
+		else {
+			ctx.jp_condition = false;
+			ctx.instruction_length--;
+		}
+		break;
+	case 1:
+		if (!ctx.jp_condition) break;
+
+		e = ctx.first_fetch;
+		result = (e >> 7) & 0x01;
+		ctx.first_fetch = e + (registers.pc & 0xff);
+
+		adj = 0;
+		if (result == 0 && (e + (registers.pc & 0xff)) > 0xff) {
+			adj = 1;
+		}
+		else if (result == 1 && (e + (registers.pc & 0xff)) <= 0xff) {
+			adj = -1;
+		}
+
+		ctx.second_fetch = adj + (registers.pc >> 8);
+		break;
+	case 2:
+		if (ctx.jp_condition) {
+			registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
+		}
+		break;
+	}
+}
 void CPU::call_cc(bool condition, u8 response_value) {
 	switch (ctx.m_cycles) {
 	case 0: ctx.first_fetch = response_value; registers.pc++; break;
@@ -3189,6 +2613,7 @@ void CPU::rra() {
 
 	registers.a = result;
 }
+
 void CPU::rlc_r(u8& reg) {
 	u8 bit7 = (reg >> 7) & 0x01;
 	u8 result = (reg << 1) | bit7;

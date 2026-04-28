@@ -96,24 +96,25 @@ struct CPUContext {
 
 class CPU {
 public:
-	//SST
+	/*   Single Step Test Functionality   */
 	void start_sst_mode();
 	void stop_sst_mode();
 	void reset_for_next_sst();
 
-	//REGISTERS
-	void reset_registers(bool boot_rom);
-	void load_registers(const CPURegisters& registers = {});
+	/*   Get/Reset/Load Data   */
+	void reset(bool boot_rom);
+	void load_registers(CPURegisters registers = {});
 	CPURegisters get_registers();
 
+	/*   Get and Set 16 Bit Registers   */
 	u16 get_joined_register(CPUJoinedRegisters registers);
 	void set_joined_register(CPUJoinedRegisters registers, u16 value);
 
-	//FLAGS
+	/*   Get and Set Flags Register   */
 	bool get_flag(CPUFlags flag);
 	void set_flag(CPUFlags flag, bool state);
 
-	//EXECUTION
+	/*   Get Next Bus Request and Action Next Bus Response   */
 	BusRequest get_bus_request();
 	void action_bus_response(BusResponse response);
 
@@ -122,18 +123,18 @@ private:
 	CPURegisters registers = {};
 
 private:
-	//EXECUTION
+	/*   Opcode Bus Request and Response   */
 	void opcode_bus_request(BusRequest& request);
 	void opcode_bus_response(BusResponse response);
 
-	//FETCH
+	/*   Fetch Request and Response   */
 	void fetch_request(BusRequest& request);
 	void fetch_response(BusResponse response);
 
-	//OPCODES
+	/*   Check For Instruction Length   */
 	bool is_instruction_done();
 
-	//OPCODE FUNCTIONS
+	/*  Bus Request Functions   */
 	void idle(BusRequest& request);
 	void read_pc(BusRequest& request);
 	void read_rr(CPUJoinedRegisters reg, BusRequest& request);
@@ -142,6 +143,13 @@ private:
 	void write_rr(CPUJoinedRegisters reg, BusRequest& request, u8 value);
 	void write_nn(u16 address, BusRequest& request, u8 value);
 
+	/*   Opcode Logic and Implementations   */
+	void ld_r(u8& reg, u8 value);
+	void ld_r_hl(u8& reg, u8 value);
+	void ld_rr_nn(CPUJoinedRegisters reg, u8 value);
+
+	void pop_rr(CPUJoinedRegisters reg, u8 value);
+	
 	void add_r(u8 value);
 	void adc_r(u8 value);
 
@@ -156,9 +164,15 @@ private:
 	void xor_r(u8 value);
 	void or_r(u8 value);
 
+	void inc_rr(CPUJoinedRegisters reg);
+	void dec_rr(CPUJoinedRegisters reg);
+
+	void add_hl_rr(u8 reg_low, u8 reg_high);
+
 	void daa();
 
-	void jp_cc(bool condition, u8 response_value);
+	void jp_cc(bool coniditon, u8 response_value);
+	void jr_cc(bool condition, u8 response_value);
 	void call_cc(bool conditon, u8 response_value);
 	void ret_cc(bool condition, u8 response_value);
 	void rst(u16 vector);
@@ -167,6 +181,7 @@ private:
 	void rrca();
 	void rla();
 	void rra();
+
 	void rlc_r(u8& reg);
 	void rrc_r(u8& reg);
 	void rl_r(u8& reg);
