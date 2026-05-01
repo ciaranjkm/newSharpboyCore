@@ -2,9 +2,50 @@
 
 #include "../Definitions.h"
 #include "../Logger.h"
-#include "InstructionDefinitions.h"
+
+#include <array>
+#include <iostream>
+#include <fstream>
 
 #include "Bus.h"
+
+/*   Instruction Lengths in M-Cycles   */
+const std::array<u8, 256> instruction_lengths = {
+		1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
+		1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
+		3, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
+		3, 3, 2, 2, 3, 3, 3, 1, 3, 2, 2, 2, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+		5, 3, 4, 4, 6, 4, 2, 4, 5, 4, 4, 0, 6, 6, 2, 4,
+		5, 3, 4, 0, 6, 4, 2, 4, 5, 4, 4, 0, 6, 0, 2, 4,
+		3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
+		3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4
+};
+const std::array<u8, 256> instruction_lengths_prefixed = {
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+};
 
 struct CPURegisters {
 	u8 a = 0x00;
@@ -30,11 +71,14 @@ struct CPURegisters {
 			h = 0x00;
 			l = 0x00;
 
+			pc = 0x0000;
+			sp = 0x0000;
+
 			return;
 		}
 
 		a = 0x01;
-		f = 0x10; //todo:: check checksum for carry and half carry flags
+		f = 0xb0; //todo:: check checksum for carry and half carry flags
 		b = 0x00;
 		c = 0x13;
 		d = 0x00;
@@ -75,9 +119,12 @@ enum CPUState {
 
 struct CPUContext {
 	bool sst_mode = false;
+
+	bool initial = false;
+	bool refetch = false;
 	
 	CPUState state = sFetch;
-	u8 instruction_length = 0x00;
+	u8 instruction_length = 0x01;
 	u8 t_cycles = 0;
 	u8 m_cycles = 0;
 	u8 opcode = 0x00;
@@ -96,6 +143,9 @@ struct CPUContext {
 
 class CPU {
 public:
+	~CPU();
+	void set_bus(Bus* bus);
+
 	/*   Single Step Test Functionality   */
 	void start_sst_mode();
 	void stop_sst_mode();
@@ -118,9 +168,17 @@ public:
 	BusRequest get_bus_request();
 	void action_bus_response(BusResponse response);
 
+	bool check_for_refetch();
+	BusRequest refetch_request();
+	void refetch_response(BusResponse response);
+
 private:
 	CPUContext ctx = {};
 	CPURegisters registers = {};
+
+	Bus* bus = nullptr;
+
+	std::ofstream file_out{"log.txt"};
 
 private:
 	/*   Opcode Bus Request and Response   */

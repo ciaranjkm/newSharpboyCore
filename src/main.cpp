@@ -12,17 +12,13 @@ int main() {
 		return -1;
 	}
 
-	//core.sst(0x40, true);
-	
-	
-	//for (int i = 0x00; i <= 0xff; i++) {
-	//	core.sst(i, false);
-	//}
-
-	for (int i = 0x00; i <= 0xff; i++) {
-		core.sst(i, true);
+	if (!core.start_emu("C:\\Users\\ciaran\\Desktop\\test_roms\\gb-test-roms\\cpu_instrs\\individual\\07-jr,jp,call,ret,rst.gb", false)) {
+		return -2;
 	}
-		
+
+	while (true) {
+		core.tick();
+	}
 
 	return 0;
 }

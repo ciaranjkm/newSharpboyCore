@@ -2,22 +2,22 @@
 
 #include <Core.h>
 
-SST::SST(System* system) {
+SST::SST(Core* core) {
 	sst_memory = std::make_shared<std::array<u8, 0x10000>>();
 
-	this->system = system;
+	this->core = core;
 
 	if (sst_memory) {
-		if (this->system) {
-			this->system->start_sst_mode(sst_memory);
+		if (this->core) {
+			this->core->start_sst_mode(sst_memory);
 			ready = true;
 		}
 	}
 }
 
 SST::~SST() {
-	system->stop_sst_mode();
-	system = nullptr;
+	core->stop_sst_mode();
+	core = nullptr;
 
 	sst_memory.reset();
 	sst_memory = nullptr;
@@ -87,8 +87,7 @@ void SST::test(u8 opcode, bool prefix, SSTResult& results) {
 		*/
 
 		//LOAD REGISTERS INTO CPU + RESET CYCLES
-		system->cpu.load_registers(test_case.initial_registers);
-		system->cpu.reset_for_next_sst();
+		core->reset_for_next_sst(test_case.initial_registers);
 
 		//LOAD MEMORY INTO 64KB FLAT RAM
 		for (std::pair<u16, u8> p : test_case.initial_memory) {
@@ -106,11 +105,11 @@ void SST::test(u8 opcode, bool prefix, SSTResult& results) {
 
 		//COMPLETE TEST INSTRUCTION
 		for (int i = 0; i < length; i++) {
-			system->tick();
+			core->tick();
 		}
 
 		//CHECK REGISTERS
-		if (check_registers(system->cpu.get_registers(), test_case.final_registers) < 0) {
+		if (check_registers(core->get_cpu_registers(), test_case.final_registers) < 0) {
 			results.failed++;
 			results.failed_tests.push_back(t);
 

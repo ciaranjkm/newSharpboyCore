@@ -12,7 +12,6 @@
 
 #include "Components/CPU.h"
 #include "Components/Bus.h"
-#include "Components/InstructionDefinitions.h"
 
 struct SSTResult {
 	bool success = false;
@@ -82,12 +81,11 @@ const std::array<std::string, 256> opcodes = {
     "F8", "F9", "FA", "FB", "", "", "FE", "FF",
 };
 
-
-struct System;
+class Core;
 
 class SST {
 public:
-	SST(System* system);
+	SST(Core* core);
 	~SST();
 
 	bool initialised();
@@ -96,7 +94,7 @@ public:
 
 private:
 	bool ready = false;
-	System* system;
+	Core* core;
 	std::shared_ptr<std::array<u8, 0x10000>> sst_memory = nullptr;
 
 private:

@@ -1,5 +1,12 @@
 #include <Components/CPU.h>
 
+CPU::~CPU() {
+	bus = nullptr;
+}
+void CPU::set_bus(Bus* bus) {
+	this->bus = bus;
+}
+
 /*   Single Step Test Functionality   */
 void CPU::start_sst_mode() {
 	ctx.sst_mode = true;
@@ -18,7 +25,7 @@ void CPU::reset(bool boot_rom) {
 	registers.reset(boot_rom);
 	ctx = {};
 }
-void CPU::load_registers(CPURegisters registers = {}) {
+void CPU::load_registers(CPURegisters registers) {
 	this->registers = registers;
 }
 CPURegisters CPU::get_registers() {
@@ -114,6 +121,20 @@ void CPU::action_bus_response(BusResponse response) {
 		opcode_bus_response(response);
 		break;
 	}
+}
+
+bool CPU::check_for_refetch() {
+	return ctx.refetch;
+}
+BusRequest CPU::refetch_request() {
+	BusRequest req = {};
+	fetch_request(req);
+
+	return req;
+}
+void CPU::refetch_response(BusResponse response) {
+	ctx.refetch = false;
+	fetch_response(response);
 }
 
 /*   Opcode Bus Request and Response   */
@@ -269,8 +290,7 @@ void CPU::opcode_bus_request(BusRequest& request) {
 	}
 	else {
 		switch (ctx.opcode) {
-		case 0x00:
-			break;
+		case 0x00: fetch_request(request); return;
 
 			//LD R R 
 		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x47:
@@ -707,7 +727,11 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			case 0: request.idle = true; request.address = get_joined_register(rHL); break;
 			}
 			break;
-		case 0x33: request.idle = true; request.address = registers.sp; break;
+		case 0x33: 
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = registers.sp; break;
+			}
+			break;
 
 			//DEC RR
 		case 0x0b:
@@ -725,7 +749,11 @@ void CPU::opcode_bus_request(BusRequest& request) {
 			case 0: request.idle = true; request.address = get_joined_register(rHL); break;
 			}
 			break;
-		case 0x3b: request.idle = true; request.address = registers.sp; break;
+		case 0x3b: 
+			switch (ctx.m_cycles) {
+			case 0: request.idle = true; request.address = registers.sp; break;
+			}
+			break;
 
 			//ADD HL RR
 		case 0x09: case 0x19: case 0x29: case 0x39:
@@ -889,7 +917,6 @@ void CPU::opcode_bus_response(BusResponse response) {
 	u16 res16 = 0x00;
 
 	//OH NO AN EXTRA 40 bits :O
-	
 
 	if (ctx.t_cycles == 3) {
 		if (ctx.prefixed_opcode) {
@@ -1470,7 +1497,7 @@ void CPU::opcode_bus_response(BusResponse response) {
 		else {
 			switch (ctx.opcode) {
 				//MISC OPCODES
-			case 0x00: break;
+			case 0x00: fetch_response(response); return;
 
 				//LD R R
 			case 0x40: registers.b = registers.b; break;
@@ -2030,12 +2057,12 @@ void CPU::opcode_bus_response(BusResponse response) {
 				switch (ctx.m_cycles) {
 				case 0: ctx.first_fetch = response.value; registers.pc++; break;
 				case 1: ctx.second_fetch = response.value; registers.pc++; break;
-				case 2: registers.pc = u16(ctx.second_fetch << 8 | ctx.first_fetch);
+				case 2: registers.pc = u16(ctx.second_fetch << 8 | ctx.first_fetch); break;
 				}
 				break;
 
 				//JP HL
-			case 0xe9: registers.pc = get_joined_register(rHL); break;
+			case 0xe9: registers.pc = get_joined_register(rHL); ctx.refetch = true; break;
 
 				//JP CC NN :: todo push this into a function
 			case 0xc2: jp_cc(!get_flag(fZ), response.value); break;
@@ -2062,7 +2089,10 @@ void CPU::opcode_bus_response(BusResponse response) {
 
 					ctx.second_fetch = adj + (registers.pc >> 8);
 					break;
-				case 2: registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); break;
+				case 2: 
+					registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);  
+					ctx.refetch = true;
+					break;
 				}
 				break;
 
@@ -2109,7 +2139,7 @@ void CPU::opcode_bus_response(BusResponse response) {
 				switch (ctx.m_cycles) {
 				case 0: ctx.first_fetch = response.value; registers.sp++; break;
 				case 1: ctx.second_fetch = response.value; registers.sp++; break;
-				case 2: registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); ctx.ime = true; break;
+				case 2: registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); ctx.ime = true;  break;
 				}
 				break;
 
@@ -2117,7 +2147,8 @@ void CPU::opcode_bus_response(BusResponse response) {
 			case 0xc7: rst(0x0000); break; case 0xcf: rst(0x0008); break;
 	        case 0xd7: rst(0x0010); break; case 0xdf: rst(0x0018); break; 
 			case 0xe7: rst(0x0020); break; case 0xef: rst(0x0028); break;
-			case 0xf7: rst(0x0030); break; case 0xff: rst(0x0038); break;
+			case 0xf7: rst(0x0030); break; 
+			case 0xff: rst(0x0038); break;
 
 				//RLCA + RRCA + RLA + RRA
 			case 0x07: rlca(); break; case 0x0f: rrca(); break;
@@ -2133,10 +2164,11 @@ void CPU::opcode_bus_response(BusResponse response) {
 			fetch_response(response);
 			return;
 		}
-
-		ctx.t_cycles = 0;
-		ctx.m_cycles++;
-		return;
+		else {
+			ctx.t_cycles = 0;
+			ctx.m_cycles++;
+			return;
+		}
 	}
 
 	ctx.t_cycles++;
@@ -2148,41 +2180,48 @@ void CPU::fetch_request(BusRequest& request) {
 	request.reading = true;
 }
 void CPU::fetch_response(BusResponse response) {
-	if (ctx.t_cycles == 3) {
-		ctx.opcode = response.value;
-		registers.pc++;
-
-		ctx.m_cycles = 0;
-		ctx.t_cycles = 0;
-
-		if (!ctx.prefix_check) {
-			if (ctx.opcode == 0xcb) {
-				ctx.state = sFetch;
-				ctx.prefix_check = true;
-
-				return;
-			}
-
-			ctx.instruction_length = instruction_lengths[ctx.opcode];
-			ctx.prefixed_opcode = false;
-			ctx.state = sExecute;
-			return;
-		}
-		else {
-			ctx.instruction_length = instruction_lengths_prefixed[ctx.opcode];
-			ctx.prefixed_opcode = true;
-			ctx.state = sExecute;
-			return;
-		}
+	if (ctx.t_cycles != 3) {
+		ctx.t_cycles++; 
+		return;
 	}
 
-	ctx.t_cycles++;
+	if (ctx.refetch) {
+		return;
+	}
+
+	ctx.opcode = response.value;
+	registers.pc++;
+
+	ctx.m_cycles = 0;
+	ctx.t_cycles = 0;
+
+	if (!ctx.prefix_check) {
+		if (ctx.opcode == 0xcb) {
+			ctx.state = sFetch;
+			ctx.prefix_check = true;
+			return;
+		}
+
+		ctx.instruction_length = instruction_lengths[ctx.opcode];
+		ctx.prefixed_opcode = false;
+		ctx.prefix_check = false;
+		ctx.state = sExecute;
+		return;
+	}
+	else {
+		ctx.instruction_length = instruction_lengths_prefixed[ctx.opcode];
+		ctx.prefixed_opcode = true;
+		ctx.prefix_check = false;
+
+		ctx.state = sExecute;
+
+		return;
+	}
 }
 
 /*   Check For Instruction Length   */
 bool CPU::is_instruction_done() {
 	if (ctx.m_cycles == ctx.instruction_length - (ctx.prefixed_opcode ? 2 : 1)) {
-		ctx.prefix_check = false;
 		return true;
 	}
 
@@ -2248,16 +2287,16 @@ void CPU::ld_rr_nn(CPUJoinedRegisters reg, u8 value) {
 }
 
 void CPU::pop_rr(CPUJoinedRegisters reg, u8 value) {
-	
 	switch (ctx.m_cycles) {
 	case 0: ctx.first_fetch = value; registers.sp++; break;
-	case 1: ctx.second_fetch = value; registers.sp++; break;
-	case 2: 
+	case 1: 
+		ctx.second_fetch = value; 
+		registers.sp++; 
 		if (reg == rAF) {
 			ctx.first_fetch &= 0xf0;
 		}
 
-		set_joined_register(reg, u16((ctx.second_fetch << 8) | ctx.first_fetch)); 
+		set_joined_register(reg, u16((ctx.second_fetch << 8) | ctx.first_fetch));
 		break;
 	}
 }
@@ -2473,6 +2512,8 @@ void CPU::jp_cc(bool condition, u8 response_value) {
 	case 2:
 		if (ctx.jp_condition) {
 			registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
+			ctx.refetch = true;
+			ctx.jp_condition = false;
 		}
 		break;
 	}
@@ -2513,9 +2554,8 @@ void CPU::jr_cc(bool condition, u8 response_value) {
 		ctx.second_fetch = adj + (registers.pc >> 8);
 		break;
 	case 2:
-		if (ctx.jp_condition) {
-			registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
-		}
+		registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch);
+		ctx.refetch = true;
 		break;
 	}
 }
@@ -2542,7 +2582,9 @@ void CPU::call_cc(bool condition, u8 response_value) {
 		registers.sp--; break;
 	case 4:
 		if (!ctx.jp_condition) break;
-		registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); break;
+		registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); 
+		ctx.jp_condition = false;
+		break;
 	}
 }
 void CPU::ret_cc(bool condition, u8 response_value) {
@@ -2561,10 +2603,9 @@ void CPU::ret_cc(bool condition, u8 response_value) {
 		ctx.first_fetch = response_value; registers.sp++; break;
 	case 2:
 		if (!ctx.jp_condition) break;
-		ctx.second_fetch = response_value; registers.sp++; break;
-	case 3:
-		if (!ctx.jp_condition) break;
-		registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); break;
+		ctx.second_fetch = response_value; registers.sp++;
+		break;
+	case 3: registers.pc = u16((ctx.second_fetch << 8) | ctx.first_fetch); break;
 	}
 }
 void CPU::rst(u16 vector) {

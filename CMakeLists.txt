@@ -6,10 +6,12 @@ target_sources(nSharpboyCore
 	PRIVATE 
 		"src/main.cpp"
 		"src/Core.cpp"
+		"src/SST.cpp"
 		"src/Components/CPU.cpp"
 		"src/Components/Bus.cpp"
-
-		"src/SST.cpp"
+		"src/Components/Memory.cpp"
+		"src/Components/PPU.cpp"
+		"src/Components/Cartridge.cpp"
 
 	PUBLIC 
 		FILE_SET coreHeaders
@@ -23,11 +25,12 @@ target_sources(nSharpboyCore
 			"include/Logger.h" 
 			
 			"include/Core.h"
+			"include/SST.h"
 			"include/Components/CPU.h" 
 			"include/Components/Bus.h"
-			"include/SST.h" 
+			"include/Components/Memory.h"
 			
-			"include/Components/InstructionDefinitions.h"
-)
+			"include/Components/Cartridge.h"  
+			"include/Components/PPU.h" )
 
 set_property(TARGET nSharpboyCore PROPERTY CXX_STANDARD 20)
